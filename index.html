@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Evaluación Segura - Arquitectura Desacoplada</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-x: none;
+        }
+        
+        .exam-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* --- ESTILOS COMPARTIDOS --- */
+        dialog { padding: 0; border: none; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 90%; width: 400px; font-family: inherit; }
+        dialog::backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+        .modal-content { display: flex; flex-direction: column; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid #dee2e6; background-color: #f8f9fa; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { margin: 0; font-size: 1.15rem; color: #212529; font-weight: 600; }
+        .modal-body { padding: 20px; font-size: 1rem; color: #212529; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; background-color: #f8f9fa; border-radius: 0 0 8px 8px; gap: 10px; }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+        .btn-primary { background-color: #0d6efd; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        
+        /* Formulario de Configuración */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; }
+        .form-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .form-check input { width: 18px; height: 18px; cursor: pointer; }
+
+        /* Botón Administrador */
+        .admin-btn { position: fixed; bottom: 20px; right: 20px; border-radius: 50px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1000; }
+        
+        /* Estilos de las preguntas */
+        .question label { display: block; padding: 12px 10px; margin-bottom: 8px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <button id="openConfigBtn" class="btn btn-secondary admin-btn">⚙️ Configuración</button>
+
+    <div class="exam-container" id="examContent">
+        <h2>Examen de Certificación</h2>
+        <p><strong>Instrucciones:</strong> Entorno seguro activo. No cambies de app, no uses pantalla dividida y no intentes volver atrás.</p>
+        <hr>
+        
+        <div class="question">
+            <h3>Pregunta 1</h3>
+            <p>Respecto a la inmovilización espinal en atención prehospitalaria, ¿cuál es la postura actual sobre los criterios NEXUS?</p>
+            <label><input type="radio" name="q1" value="a"> A) Son el estándar de oro absoluto para cualquier trauma.</label>
+            <label><input type="radio" name="q1" value="b"> B) Solo aplican en pacientes pediátricos menores de 12 años.</label>
+            <label><input type="radio" name="q1" value="c"> C) Ya no se ocupan o nunca lo fueron para inmovilizar.</label>
+        </div>
+    </div>
+
+    <!-- Modal de Advertencia -->
+    <dialog id="securityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: #dc3545;">¡Advertencia de Seguridad!</h5>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Se ha detectado una actividad no permitida.</p>
+                <p><small>Infracciones acumuladas: <span id="infractionCount">0</span>/<span id="maxInfractionsDisplay">3</span></small></p>
+            </div>
+            <div class="modal-footer">
+                <button id="closeModalBtn" class="btn btn-primary">Entendido</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Modal de Configuración -->
+    <dialog id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuración de Seguridad</h5>
+                <button id="closeConfigXBtn" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="inputMaxInfractions">Número máximo de infracciones permitidas:</label>
+                    <input type="number" id="inputMaxInfractions" class="form-control" min="1" max="10">
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="checkAutoAnnul">
+                    <label for="checkAutoAnnul" style="margin:0;">Anular examen automáticamente al detectar captura de pantalla</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelConfigBtn" class="btn btn-secondary">Cancelar</button>
+                <button id="saveConfigBtn" class="btn btn-primary">Guardar Cambios</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Importamos los scripts por separado -->
+    <script src="security.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
