@@ -46,3 +46,61 @@ El script interactúa con el DOM utilizando identificadores (`id`) estrictos. As
     <button id="cancelConfigBtn">Cancelar</button>
     <button id="saveConfigBtn">Guardar</button>
 </dialog>
+```
+
+## 2. Emisión de Eventos de Seguridad
+Para que ExamApp reaccione, tus scripts de monitoreo deben despachar eventos security-infraction al objeto window.
+
+Para registrar una infracción estándar (suma 1 al contador):
+
+JavaScript
+```
+window.dispatchEvent(new CustomEvent('security-infraction', {
+    detail: { 
+        type: 'blur', 
+        reason: 'Se detectó que abandonaste la pestaña del examen.' 
+    }
+}));
+```
+Para detonar una anulación inmediata (requiere autoAnnulScreenshot: true):
+
+JavaScript
+```
+window.dispatchEvent(new CustomEvent('security-infraction', {
+    detail: { 
+        type: 'screenshot', 
+        reason: 'Uso de tecla de captura de pantalla detectado.' 
+    }
+}));
+```
+
+## 3. Configuración y Almacenamiento
+La configuración se guarda en el localStorage del navegador bajo la clave examSecurityConfig. El formato almacenado es:
+
+JSON
+```
+{
+  "maxInfractions": 3,
+  "autoAnnulScreenshot": false
+}
+```
+
+## 4. Implementación Obligatoria (Backend)
+En su estado actual, la función suspendExam(reason) de la clase solo reemplaza el DOM de manera visual. Para evitar que un estudiante recargue la página y continúe el examen tras una anulación, debes añadir una petición a tu servidor.
+
+Localiza el método suspendExam en app.js e integra tu API:
+
+JavaScript
+```
+suspendExam(reason) {
+    const container = document.getElementById('examContent');
+    container.innerHTML = `...`; // Código visual de anulación
+
+    // Llamada requerida para invalidar la sesión en la base de datos
+    fetch('/api/exams/suspend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo: reason })
+    });
+}
+```
